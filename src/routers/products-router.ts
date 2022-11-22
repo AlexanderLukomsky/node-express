@@ -1,27 +1,18 @@
 import { Request, Response, Router } from "express";
-
-const products = [
-  { value: "milk", id: 1 },
-  { value: "cucumber", id: 2 },
-];
+import { productsRepository } from "../repositories";
 
 export const productsRouter = Router({});
 
 productsRouter.get("/", (req: Request, res: Response) => {
-  if (req.query.title) {
-    res.send(
-      products.filter((product) =>
-        product.value.includes(req.query.title as string)
-      )
-    );
-  } else {
-    res.send(products);
-  }
+  const foundProducts = productsRepository.findProducts(
+    req.query.title?.toString()
+  );
+
+  res.send(foundProducts);
 });
 
 productsRouter.get("/:id", (req: Request, res: Response) => {
-  const reqParams = +req.params.id;
-  const product = products.find((product) => product.id === reqParams);
+  const product = productsRepository.findProductById(+req.params.id);
 
   if (product) {
     res.send(product);
@@ -31,13 +22,9 @@ productsRouter.get("/:id", (req: Request, res: Response) => {
 });
 
 productsRouter.delete("/:id", (req: Request, res: Response) => {
-  const reqParams = +req.params.id;
-  const productIndex = products.findIndex(
-    (product) => product.id === reqParams
-  );
+  const isDeleted = productsRepository.deleteProduct(+req.params.id);
 
-  if (productIndex > -1) {
-    products.splice(productIndex, 1);
+  if (isDeleted) {
     res.send(204);
   } else {
     res.send(404);
@@ -45,14 +32,18 @@ productsRouter.delete("/:id", (req: Request, res: Response) => {
 });
 
 productsRouter.post("/", (req: Request, res: Response) => {
-  const newProduct = { value: req.body.title, id: +new Date() };
-  products.push(newProduct);
+  const newProduct = productsRepository.createProduct(req.body.title);
+
   res.status(201).send(newProduct);
 });
+
 productsRouter.put("/:id", (req: Request, res: Response) => {
-  const product = products.find((product) => product.id === +req.params.id);
-  if (product) {
-    product.value = req.body.title;
+  const id = +req.params.id;
+  const title = req.body.title;
+  const isUpdated = productsRepository.updateProduct(id, title);
+
+  if (isUpdated) {
+    const product = productsRepository.findProductById(id);
     res.status(200).send(product);
   } else {
     res.send(403);
